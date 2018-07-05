@@ -19,7 +19,7 @@ The provided database contains newspaper articles, as well as the web server log
 ### Created Views:
 __most_popular__
 ```sql
-create or replace view most_popular as
+create view most_popular as
 select author, title, count(title) as views from articles,log, authors
 where log.path = concat('/article/',articles.slug) and article.author = authors.id;
 group by title order by views desc
