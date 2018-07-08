@@ -32,29 +32,9 @@ The provided database contains newspaper articles, as well as the web server log
   To load the database use the following command:
   <pre>psql -d news -f newsdata.sql;</pre>
 
-* Make the required database views by running the below SQL queries on the vagrant PSQL command line.
-
 * Run the python program to extract the required data.
   <pre>python log.py</pre>
 
-
-### Created Views:
-__most_popular__
-```sql
-create view most_popular as
-select author, title, count(title) as views from articles,log, authors
-where log.path = concat('/article/',articles.slug) and article.author = authors.id;
-group by title order by views desc
-```
-__popular_authors__
-```sql
-create view popular_authors as select authors.name, count(articles.author) as views from articles, log, authors where log.path = concat('/article/',articles.slug) and articles.author = authors.id group by authors.name order by views desc
-```
-__log_errors__
-```sql
- create view log_errors as select date(time),round(100.0*sum(case log.status when '200 OK' then 0 else 1 end)/count(log.status),2) as "error_percent" from log group by date(time) order by "error_percent" desc;
-```
-  
 ### Functions in log.py:
 * __connect():__ Connects to the PostgreSQL database and returns a connection.
 * __pop_art():__ Displays the most popular three articles of all time.
