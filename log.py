@@ -9,16 +9,27 @@ def connect(dbname="news"):
         conn = psycopg2.connect("dbname={}".format(dbname))
         c = conn.cursor()
         return conn, c
-    except:
-        print("Connection failed")
+    except psycopg2.Error as err:
+        print("Unable to connect to the database")
+        print(err)
+        sys.exit(1)
 
 
 def pop_art():
     """Prints most popular three articles."""
     db, c = connect()
-    query = "select title, views from (select title, count(title) as views from\
-    articles, log where log.path = concat('/article/',articles.slug) group by\
-    title order by views desc) as most_popular limit 3;"
+    query = """
+    SELECT title,
+       views
+    FROM
+    (SELECT title,
+           count(title) AS views
+    FROM articles,
+         log
+    WHERE log.path = concat('/article/', articles.slug)
+    GROUP BY title
+    ORDER BY views DESC) AS most_popular
+    LIMIT 3;"""
     c.execute(query)
     result = c.fetchall()
     db.close()
@@ -30,10 +41,19 @@ def pop_art():
 def pop_auth():
     """Prints most popular article authors of all time."""
     db, c = connect()
-    query = "select name, views from (select authors.name, \
-    count(articles.author) as views from articles, log, authors where \
-    log.path = concat('/article/',articles.slug) and articles.author = \
-    authors.id group by authors.name order by views desc) as pop_authors;"
+    query = """
+    SELECT name,
+       views
+    FROM
+   (SELECT authors.name,
+          count(articles.author) AS views
+   FROM articles,
+        log,
+        authors
+   WHERE log.path = concat('/article/', articles.slug)
+     AND articles.author = authors.id
+   GROUP BY authors.name
+   ORDER BY views DESC) AS pop_authors"""
     c.execute(query)
     result = c.fetchall()
     db.close()
@@ -45,11 +65,18 @@ def pop_auth():
 def log_err():
     """Print days on which more than 1% of browser requests lead to errors"""
     conn, c = connect()
-    query = "select date, error_percent from \
-    (select date(time),round(100.0*sum(case log.status when '200 OK' then \
-    0 else 1 end)/count(log.status),2) as error_percent from log group \
-    by date(time) order by error_percent desc) as log_errors where\
-    error_percent > 1.0;"
+    query = """
+    SELECT date, error_percent
+    FROM
+   (SELECT date(TIME),
+          round(100.0*sum(CASE log.status
+                              WHEN '200 OK' THEN 0
+                              ELSE 1
+                          END)/count(log.status), 2) AS error_percent
+    FROM log
+    GROUP BY date(TIME)
+    ORDER BY error_percent DESC) AS log_errors
+    WHERE error_percent > 1.0;"""
     c.execute(query)
     result = c.fetchall()
     conn.close()
